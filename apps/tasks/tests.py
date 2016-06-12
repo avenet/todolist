@@ -1,6 +1,7 @@
 from django.contrib.auth import get_user_model
 from django.test import TestCase
 
+from .admin import TaskAdmin
 from .models import Task
 
 User = get_user_model()
@@ -94,3 +95,29 @@ class TaskModelTests(TestCase):
         """
         clean_out_closet_task = Task.objects.get(pk=self.clean_closet_task.pk)
         self.assertIsNotNone(clean_out_closet_task.created)
+
+
+class TaskAdminTests(TestCase):
+    """
+    Task admin tests
+    """
+    def test_task_admin_list_filter_fields(self):
+        """
+        Tests that task admin list_filter contains the right fields
+        """
+        self.assertEqual(TaskAdmin.list_filter,
+                         ['status', 'created', 'updated', 'owner'])
+
+    def test_task_admin_search_fields(self):
+        """
+        Tests that the task admin search_fields contains the right fields
+        """
+        self.assertEqual(TaskAdmin.search_fields,
+                         ['name', 'description', 'owner'])
+
+    def test_task_admin_list_display(self):
+        """
+        Tests that the task admin list_display contains the right fields
+        """
+        self.assertEqual(TaskAdmin.list_display,
+                         ['status', 'owner'])
