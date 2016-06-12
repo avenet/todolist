@@ -2,11 +2,13 @@ import json
 
 from django.contrib.auth import get_user_model
 from django.core.urlresolvers import resolve
+from django.http import HttpRequest
 from django.test import Client, TestCase
 
 from rest_framework.authtoken.views import obtain_auth_token
 
 from .serializers import UserCreateSerializer
+from .views import UserCreate
 
 User = get_user_model()
 
@@ -92,4 +94,134 @@ class UserCreateSerializerTests(TestCase):
         self.assertEqual(set(UserCreateSerializer.Meta.fields), fields)
 
 
+class UserCreateTests(TestCase):
+    def setUp(self):
+        self.lennon = User.objects.create_user(
+            'john',
+            'lennon@thebeatles.com',
+            'johnpassword')
 
+    @staticmethod
+    def create_post_request(data):
+        user_create_view = UserCreate()
+
+        request = HttpRequest()
+        request.data = data
+
+        return user_create_view.post(request)
+
+    def test_create_already_existing_username(self):
+        """
+        Test that when trying to create an username which already exists
+        the response status code is 400 and a message error appears on the
+        username part.
+        """
+        response = self.create_post_request({
+            'username': self.lennon.username,
+            'password': 'test'
+        })
+
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.data['username'], [
+            'A user with that username already exists.'
+        ])
+
+    def test_create_invalid_user_with_empty_parameters(self):
+        """
+        Test that creating a user without parameters causes
+        status code 400 on the response and validation errors on the response JSON
+        """
+        response = self.create_post_request({})
+
+        self.assertEqual(response.status_code, 400)
+
+        self.assertEqual(response.data['username'], [
+            'This field is required.'
+        ])
+        self.assertEqual(response.data['password'], [
+            'This field is required.'
+        ])
+
+    def test_create_valid_user(self):
+        """
+        Test that creating a valid user causes status code 201
+        with a user created on the database
+        """
+        create_user_params = {
+            'username': 'mosteel',
+            'password': 'test',
+            'first_name': 'Clark',
+            'last_name': 'Kent',
+            'email': 'clark@kent.com',
+        }
+
+        response = self.create_post_request(create_user_params)
+
+        self.assertEqual(response.status_code, 201)
+
+        mosteel = User.objects.get(username=create_user_params.get('username'))
+
+        self.assertEqual(mosteel.first_name, create_user_params['first_name'])
+        self.assertEqual(mosteel.last_name, create_user_params['last_name'])
+        self.assertEqual(mosteel.email, create_user_params['email'])
+
+    def test_create_user_with_invalid_email(self):
+        """
+        Test that creating a user with an invalid email causes
+        status code 400 on the response and a validation error on the response JSON
+        """
+        response = self.create_post_request({
+            'username': 'mosteel',
+            'password': 'test',
+            'first_name': 'Clark',
+            'last_name': 'Kent',
+            'email': 'someone',
+        })
+
+        self.assertEqual(response.status_code, 400)
+
+        self.assertEqual(response.data['email'], [
+            'Enter a valid email address.'
+        ])
+
+    def test_create_user_with_empty_password(self):
+        """
+        Test that trying to create a user with an empty password fails
+        with a 400 status code and an error message on the response.
+        """
+        response = self.create_post_request({
+            'username': 'mosteel',
+            'password': '',
+            'first_name': 'Clark',
+            'last_name': 'Kent',
+            'email': 'clark@kent.com',
+        })
+
+        self.assertEqual(response.status_code, 400)
+
+        self.assertEqual(response.data['password'], [
+            'This field may not be blank.'
+        ])
+
+    def test_check_created_user_password(self):
+        """
+        Test that once the user was created, it it assigned with the right
+        password.
+        """
+        username = 'clark'
+        password = 'kent'
+
+        response = self.create_post_request({
+            'username': username,
+            'password': password,
+            'first_name': 'Clark',
+            'last_name': 'Kent',
+            'email': 'clark@kent.com',
+        })
+
+        self.assertEqual(response.status_code, 201)
+
+        user = User.objects.get(username=username)
+        check_password_result = user.check_password(password)
+
+        self.assertEqual(check_password_result, True)
