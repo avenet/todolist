@@ -44,6 +44,7 @@ INSTALLED_APPS = [
 
     # Internal apps
     'apps.users',
+    'apps.tasks',
 ]
 
 MIDDLEWARE_CLASSES = [
