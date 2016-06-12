@@ -3,7 +3,7 @@
 TodoList
 -------
 
-Powered by Django, TodoList is a simple app to create users and tasks via API.
+Powered by [Django](https://www.djangoproject.com/), TodoList is a simple app to create users and tasks via API.
 
 Requirements
 -------------------
