@@ -1,2 +1,2 @@
-from apps.users.tests import *
+from apps.users.tests import * # noqa
 
