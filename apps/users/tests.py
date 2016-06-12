@@ -6,6 +6,8 @@ from django.test import Client, TestCase
 
 from rest_framework.authtoken.views import obtain_auth_token
 
+from .serializers import UserCreateSerializer
+
 User = get_user_model()
 
 
@@ -71,6 +73,23 @@ class UserGetTokenTestCase(TestCase):
 
         self.assertEqual(result_json.get('token'), None)
 
+
+class UserCreateSerializerTests(TestCase):
+    """
+    UserSerializer class tests
+    """
+    def test_user_serializer_model(self):
+        """
+        Test that the user serializer model is set to all of the objects from the user class
+        """
+        self.assertEqual(UserCreateSerializer.Meta.model, User)
+
+    def test_user_serializer_fields(self):
+        """
+        Test that the user serializer fields are set correctly on the user serializer class
+        """
+        fields = {'username', 'password', 'email', 'first_name', 'last_name'}
+        self.assertEqual(set(UserCreateSerializer.Meta.fields), fields)
 
 
 
