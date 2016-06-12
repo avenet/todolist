@@ -1,8 +1,11 @@
 from django.contrib.auth import get_user_model
 from django.test import TestCase
 
+from rest_framework import fields
+
 from .admin import TaskAdmin
 from .models import Task
+from .serializers import TaskCreateSerializer, TaskDetailSerializer, TaskListSerializer
 
 User = get_user_model()
 
@@ -121,3 +124,71 @@ class TaskAdminTests(TestCase):
         """
         self.assertEqual(TaskAdmin.list_display,
                          ['status', 'owner'])
+
+
+class TaskCreateSerializerTests(TestCase):
+    """
+    TaskCreateSerializer tests
+    """
+    def test_task_create_serializer_fields(self):
+        """
+        Tests that the task create serializer contains the right fields on the Meta clas.
+        """
+        self.assertEqual(TaskCreateSerializer.Meta.fields, ('id', 'name', 'description'))
+
+    def test_task_create_serializer_model(self):
+        """
+        Tests that the task create serializer contains the right model on the Meta class.
+        """
+        self.assertEqual(TaskCreateSerializer.Meta.model, Task)
+
+
+class TaskListSerializerTests(TestCase):
+    """
+    TaskListSerializer tests
+    """
+    def test_task_list_serializer_fields(self):
+        """
+        Tests that the task list serializer contains the right fields on the Meta class.
+        """
+        self.assertEqual(TaskListSerializer.Meta.fields, ('id', 'name', 'status'))
+
+    def test_task_list_serializer_model(self):
+        """
+        Tests that the task list serializer contains the right model on the Meta class.
+        """
+        self.assertEqual(TaskListSerializer.Meta.model, Task)
+
+    def test_task_list_serializer_status_field(self):
+        """
+        Tests that the task list serializer contains a valid status field.
+        """
+        status_field = TaskListSerializer().get_fields()['status']
+        self.assertEqual(status_field.source, 'get_status_display')
+        self.assertEqual(type(status_field), fields.CharField)
+
+
+class TaskDetailSerializerTests(TestCase):
+    """
+    TaskDetailSerializer tests
+    """
+    def test_task_detail_serializer_fields(self):
+        """
+        Tests that the task detail serializer contains the right fields on the Meta class.
+        """
+        self.assertEqual(TaskDetailSerializer.Meta.fields, ('id', 'name', 'description',
+                                                            'status', 'created', 'updated'))
+
+    def test_task_detail_serializer_model(self):
+        """
+        Tests that the task detail serializer contains the right model on the Meta class.
+        """
+        self.assertEqual(TaskDetailSerializer.Meta.model, Task)
+
+    def test_task_detail_serializer_status_field(self):
+        """
+        Tests that the task list serializer contains a valid status field.
+        """
+        status_field = TaskDetailSerializer().get_fields()['status']
+        self.assertEqual(status_field.source, 'get_status_display')
+        self.assertEqual(type(status_field), fields.CharField)
