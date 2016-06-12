@@ -42,7 +42,7 @@ class UserGetTokenTestCase(TestCase):
 
     def test_get_token_with_valid_username_and_password(self):
         """
-        Test that when trying to get a token with a valid username and password
+        Tests that when trying to get a token with a valid username and password
         the status code is 200 and a token string it is retrieved
         """
         token_result = self.client.post('/api/v1/users/get-token/', data={
@@ -60,7 +60,7 @@ class UserGetTokenTestCase(TestCase):
 
     def test_get_token_with_invalid_username_and_password(self):
         """
-        Test that when trying to get a token with a invalid username and password
+        Tests that when trying to get a token with a invalid username and password
         the status code is 400 and no token is returned on the JSON.
         """
         token_result = self.client.post('/api/v1/users/get-token/', data={
@@ -112,7 +112,7 @@ class UserCreateTests(TestCase):
 
     def test_create_already_existing_username(self):
         """
-        Test that when trying to create an username which already exists
+        Tests that when trying to create an username which already exists
         the response status code is 400 and a message error appears on the
         username part.
         """
@@ -128,7 +128,7 @@ class UserCreateTests(TestCase):
 
     def test_create_invalid_user_with_empty_parameters(self):
         """
-        Test that creating a user without parameters causes
+        Tests that creating a user without parameters causes
         status code 400 on the response and validation errors on the response JSON
         """
         response = self.create_post_request({})
@@ -144,7 +144,7 @@ class UserCreateTests(TestCase):
 
     def test_create_valid_user(self):
         """
-        Test that creating a valid user causes status code 201
+        Tests that creating a valid user causes status code 201
         with a user created on the database
         """
         create_user_params = {
@@ -167,7 +167,7 @@ class UserCreateTests(TestCase):
 
     def test_create_user_with_invalid_email(self):
         """
-        Test that creating a user with an invalid email causes
+        Tests that creating a user with an invalid email causes
         status code 400 on the response and a validation error on the response JSON
         """
         response = self.create_post_request({
@@ -186,7 +186,7 @@ class UserCreateTests(TestCase):
 
     def test_create_user_with_empty_password(self):
         """
-        Test that trying to create a user with an empty password fails
+        Tests that trying to create a user with an empty password fails
         with a 400 status code and an error message on the response.
         """
         response = self.create_post_request({
@@ -205,7 +205,7 @@ class UserCreateTests(TestCase):
 
     def test_check_created_user_password(self):
         """
-        Test that once the user was created, it it assigned with the right
+        Tests that once the user was created, it it assigned with the right
         password.
         """
         username = 'clark'
