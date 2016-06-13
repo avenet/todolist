@@ -16,6 +16,12 @@ To use this project just run the following commands:
 
     $ pip install -r requirements.txt
     $ python manage.py runserver
+    
+Running the tests
+-------------------
+To run the test suite just run:
+
+    $ python manage.py test
 
 Enjoy!
 
