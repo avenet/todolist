@@ -1,4 +1,5 @@
 from django.contrib.auth import get_user_model
+from django.core.urlresolvers import resolve
 from django.test import TestCase
 
 from rest_framework import fields
@@ -10,7 +11,39 @@ from .serializers import TaskCreateSerializer, TaskDetailSerializer, TaskListSer
 User = get_user_model()
 
 
-class TaskModelTests(TestCase):
+class TasksURLsTestCase(TestCase):
+    """
+    Task urls testcases
+    """
+    def test_task_list_url_uses_obtain_task_list_view(self):
+        """
+        Test that the task list url resolves to the correct
+        view function.
+        """
+        task_list = resolve('/api/v1/tasks/')
+        task_list_func_name = str(task_list.func).split()[1]
+        self.assertEqual(task_list_func_name, "TaskList")
+
+    def test_task_detail_url_uses_obtain_task_detail_view(self):
+        """
+        Test that the task detail url resolves to the correct
+        view function.
+        """
+        task_detail = resolve('/api/v1/tasks/1/')
+        task_detail_func_name = str(task_detail.func).split()[1]
+        self.assertEqual(task_detail_func_name, "TaskDetail")
+
+    def test_task_solve_url_uses_obtain_task_solve_view(self):
+        """
+        Test that the task solve url resolves to the correct
+        view function.
+        """
+        task_solve = resolve('/api/v1/tasks/1/solve/')
+        task_solve_func_name = str(task_solve.func).split()[1]
+        self.assertEqual(task_solve_func_name, "TaskSolve")
+
+
+class TaskModelTestCase(TestCase):
     """
     Task model tests
     """
@@ -100,7 +133,7 @@ class TaskModelTests(TestCase):
         self.assertIsNotNone(clean_out_closet_task.created)
 
 
-class TaskAdminTests(TestCase):
+class TaskAdminTestCase(TestCase):
     """
     Task admin tests
     """
@@ -126,7 +159,7 @@ class TaskAdminTests(TestCase):
                          ['status', 'owner'])
 
 
-class TaskCreateSerializerTests(TestCase):
+class TaskCreateSerializerTestCase(TestCase):
     """
     TaskCreateSerializer tests
     """
@@ -143,7 +176,7 @@ class TaskCreateSerializerTests(TestCase):
         self.assertEqual(TaskCreateSerializer.Meta.model, Task)
 
 
-class TaskListSerializerTests(TestCase):
+class TaskListSerializerTestCase(TestCase):
     """
     TaskListSerializer tests
     """
@@ -168,7 +201,7 @@ class TaskListSerializerTests(TestCase):
         self.assertEqual(type(status_field), fields.CharField)
 
 
-class TaskDetailSerializerTests(TestCase):
+class TaskDetailSerializerTestCase(TestCase):
     """
     TaskDetailSerializer tests
     """
