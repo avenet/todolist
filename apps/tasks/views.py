@@ -41,6 +41,7 @@ class TaskDetail(generics.GenericAPIView, mixins.RetrieveModelMixin):
     queryset = Task.objects.all()
     authentication_classes = (TokenAuthentication,)
     serializer_class = TaskDetailSerializer
+    permission_classes = (IsAuthenticated,)
 
     def get(self, request, *args, **kwargs):
         pk = kwargs.get('pk')
@@ -58,10 +59,14 @@ class TaskSolve(APIView):
     Solves a task when called via PUT
     """
     authentication_classes = (TokenAuthentication,)
+    permission_classes = (IsAuthenticated,)
 
     def put(self, request, pk, format=None):
         user = request.user
-        task = get_object_or_404(Task, pk=pk, owner=user)
+        try:
+            task = get_object_or_404(Task, pk=pk, owner=user)
+        except Task.DoesNotExist:
+            return Response({}, status=status.HTTP_404_NOT_FOUND)
 
         if task.status == Task.SOLVED:
             return Response(status=status.HTTP_304_NOT_MODIFIED)
