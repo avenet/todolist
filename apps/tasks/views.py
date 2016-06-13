@@ -43,7 +43,13 @@ class TaskDetail(generics.GenericAPIView, mixins.RetrieveModelMixin):
     serializer_class = TaskDetailSerializer
 
     def get(self, request, *args, **kwargs):
-        self.queryset = self.queryset.filter(owner=request.user)
+        pk = kwargs.get('pk')
+
+        try:
+            Task.objects.get(pk=pk, owner=request.user)
+        except:
+            return Response({}, status=status.HTTP_401_UNAUTHORIZED)
+
         return self.retrieve(request, *args, **kwargs)
 
 
