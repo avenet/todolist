@@ -3,10 +3,14 @@ from django.core.urlresolvers import resolve
 from django.test import TestCase
 
 from rest_framework import fields
+from rest_framework.authentication import TokenAuthentication
+from rest_framework.permissions import IsAuthenticated
+from rest_framework.test import force_authenticate, APIRequestFactory
 
 from .admin import TaskAdmin
 from .models import Task
 from .serializers import TaskCreateSerializer, TaskDetailSerializer, TaskListSerializer
+from .views import TaskList, TaskDetail, TaskSolve
 
 User = get_user_model()
 
@@ -225,3 +229,183 @@ class TaskDetailSerializerTestCase(TestCase):
         status_field = TaskDetailSerializer().get_fields()['status']
         self.assertEqual(status_field.source, 'get_status_display')
         self.assertEqual(type(status_field), fields.CharField)
+
+
+class TaskListTestCase(TestCase):
+    """
+    TaskList view tests
+    """
+    def setUp(self):
+        self.user = User.objects.create(username="master")
+        self.tasks = [
+            Task.objects.create(name='One', owner=self.user),
+            Task.objects.create(name='Two', owner=self.user),
+            Task.objects.create(name='Three', owner=self.user),
+        ]
+
+    def test_task_list_authentication_classes(self):
+        """
+        Tests that the authentication_classes attribute on the TaskList view contains
+        the right classes
+        """
+        self.assertEqual(TaskList.authentication_classes, (TokenAuthentication,))
+
+    def test_task_list_permission_classes(self):
+        """
+        Tests that the permission_classes attribute on the TaskList view contains
+        the right classes
+        """
+        self.assertEqual(TaskList.permission_classes, (IsAuthenticated,))
+
+    def test_get_task_list_without_authentication(self):
+        """
+        Tests that when getting a task list and no user is authenticated,
+        the api returns a 401 error
+        """
+        factory = APIRequestFactory()
+        request = factory.get('/api/v1/tasks', format='json')
+        task_list_view = TaskList.as_view()
+        response = task_list_view(request)
+
+        self.assertEqual(response.status_code, 401)
+        self.assertEqual(response.data['detail'],
+                         'Authentication credentials were not provided.')
+
+    def test_get_task_list_returns_json_list(self):
+        """
+        Tests that when the user is authenticated, the api returns a 200 error
+        and gets the task count for that user
+        """
+        factory = APIRequestFactory()
+        request = factory.get('/api/v1/tasks', format='json')
+        task_list_view = TaskList.as_view()
+
+        force_authenticate(request, user=self.user)
+
+        response = task_list_view(request)
+
+        self.assertEqual(response.status_code, 200)
+
+        user_tasks_count = Task.objects.filter(owner=self.user).count()
+
+        self.assertEqual(len(response.data), user_tasks_count)
+
+    def test_get_task_list_contains_valid_fields(self):
+        """
+        Tests that when a valid user is authenticated, all of the returned
+        tasks contain the correct fields
+        """
+        factory = APIRequestFactory()
+        request = factory.get('/api/v1/tasks', format='json')
+        task_list_view = TaskList.as_view()
+
+        force_authenticate(request, user=self.user)
+
+        response = task_list_view(request)
+
+        response_fields = ['id', 'name', 'status']
+
+        for item in response.data:
+            for response_field in response_fields:
+                self.assertEqual(response_field in item, True)
+
+    def test_create_task(self):
+        """
+        Tests that when no user is authenticated and we are creating a task,
+        the api returns a 201 created status code.
+        """
+        factory = APIRequestFactory()
+
+        request = factory.post('/api/v1/tasks', {
+            'name': 'Hello',
+            'description': 'world',
+        }, format='json')
+
+        task_list_view = TaskList.as_view()
+
+        force_authenticate(request, user=self.user)
+
+        response = task_list_view(request)
+
+        self.assertEqual(response.status_code, 201)
+        response_fields = ['description', 'name', 'id']
+
+        for response_field in response_fields:
+            self.assertEqual(response_field in response.data, True)
+
+    def test_create_task_owner(self):
+        """
+        Tests that once the task is created the owner is
+        the authenticated user
+        """
+        factory = APIRequestFactory()
+
+        request = factory.post('/api/v1/tasks', {
+            'name': 'Hello',
+            'description': 'world',
+        }, format='json')
+
+        task_list_view = TaskList.as_view()
+
+        force_authenticate(request, user=self.user)
+
+        response = task_list_view(request)
+
+        self.assertEqual(response.status_code, 201)
+
+        created_task = Task.objects.get(pk=response.data['id'])
+
+        self.assertEqual(created_task.owner, self.user)
+
+    def test_create_with_invalid_name(self):
+        """
+        Tests that trying to create a task with no name
+        returns a 400 status code and a validation message
+        """
+        factory = APIRequestFactory()
+
+        request = factory.post('/api/v1/tasks', {
+            'name': '',
+            'description': 'world',
+        }, format='json')
+
+        task_list_view = TaskList.as_view()
+
+        force_authenticate(request, user=self.user)
+
+        response = task_list_view(request)
+
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.data['name'],
+                         ['This field may not be blank.'])
+
+    def test_create_task_fields(self):
+        """
+        Tests that when creating a task via API it contains
+        the fields as passed on the POST mechanism.
+        """
+        factory = APIRequestFactory()
+
+        task_name = 'Task'
+        task_description = 'world'
+
+        request = factory.post('/api/v1/tasks', {
+            'name': task_name,
+            'description': task_description,
+        }, format='json')
+
+        task_list_view = TaskList.as_view()
+
+        force_authenticate(request, user=self.user)
+
+        response = task_list_view(request)
+
+        self.assertEqual(response.status_code, 201)
+
+        new_task = Task.objects.order_by('-pk').first()
+
+        self.assertEqual(new_task.name, task_name)
+        self.assertEqual(new_task.description, task_description)
+        self.assertIsNotNone(new_task.created)
+        self.assertIsNotNone(new_task.updated)
+        self.assertEqual(new_task.status, Task.PENDING)
