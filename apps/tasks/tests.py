@@ -412,6 +412,9 @@ class TaskListTestCase(TestCase):
 
 
 class TaskDetailTestCase(TestCase):
+    """
+    TaskDetail view tests
+    """
     def setUp(self):
         self.user = User.objects.create(username="master")
         self.user_two = User.objects.create(username="puppet")
@@ -437,6 +440,13 @@ class TaskDetailTestCase(TestCase):
         """
         self.assertEqual(TaskDetail.authentication_classes,
                          (TokenAuthentication,))
+
+    def test_task_detail_permission_classes(self):
+        """
+        Tests that the permission_classes attribute on the TaskDetail view contains
+        the right classes
+        """
+        self.assertEqual(TaskDetail.permission_classes, (IsAuthenticated,))
 
     def test_get_task_list_without_authentication(self):
         """
@@ -485,3 +495,94 @@ class TaskDetailTestCase(TestCase):
 
         for task_field in task_fields:
             self.assertEqual(task_field in response.data, True)
+
+
+class TaskSolveTestCase(TestCase):
+    """
+    TaskSolve view tests
+    """
+    def setUp(self):
+        self.user = User.objects.create(username="master")
+        self.user_two = User.objects.create(username="puppet")
+
+        self.tasks = [
+            Task.objects.create(name='One', owner=self.user),
+            Task.objects.create(name='Two', owner=self.user, status=Task.SOLVED),
+            Task.objects.create(name='Three', owner=self.user),
+        ]
+
+    def test_task_detail_authentication_classes(self):
+        """
+        Tests that the authentication_classes attribute on the TaskSolve class
+        contains the valid class list values.
+        """
+        self.assertEqual(TaskSolve.authentication_classes,
+                         (TokenAuthentication,))
+
+    def test_task_solve_without_authentication(self):
+        """
+        Tests that when a user is not authenticated he/she is
+        not able to get the task list.
+        """
+        factory = APIRequestFactory()
+        request = factory.put('/api/v1/tasks/1/solve/', format='json')
+        task_solve_view = TaskSolve.as_view()
+        response = task_solve_view(request, pk=1)
+
+        self.assertEqual(response.status_code, 401)
+
+    def test_task_detail_permission_classes(self):
+        """
+        Tests that the permission_classes attribute on the TaskSolve view contains
+        the right classes
+        """
+        self.assertEqual(TaskSolve.permission_classes, (IsAuthenticated,))
+
+    def test_task_solve_with_invalid_user(self):
+        """
+        Tests that when a user is not the owner of a given task
+        the status code returned is 404
+        """
+        factory = APIRequestFactory()
+        task_id = self.tasks[0].pk
+        request = factory.put('/api/v1/tasks/{}/solve/'.format(task_id), format='json')
+        force_authenticate(request, user=self.user_two)
+
+        task_solve_view = TaskSolve.as_view()
+        response = task_solve_view(request, pk=task_id)
+
+        self.assertEqual(response.status_code, 404)
+
+    def test_task_solve_with_valid_user_solves_task(self):
+        """
+        Tests to solve a task using the owner as the authenticated user.
+        The status code should be 200 and the task should be solved.
+        """
+        factory = APIRequestFactory()
+        task_id = self.tasks[0].pk
+        request = factory.put('/api/v1/tasks/{}/solve/'.format(task_id), format='json')
+        force_authenticate(request, user=self.user)
+
+        task_solve_view = TaskSolve.as_view()
+        response = task_solve_view(request, pk=task_id)
+
+        self.assertEqual(response.status_code, 200)
+
+        task = Task.objects.get(pk=task_id)
+
+        self.assertEqual(task.status, Task.SOLVED)
+
+    def test_task_solved_solve(self):
+        """
+        Tests to solve an already solved task. The status code returned should
+        be 304.
+        """
+        factory = APIRequestFactory()
+        task_id = self.tasks[1].pk
+        request = factory.put('/api/v1/tasks/{}/solve/'.format(task_id), format='json')
+        force_authenticate(request, user=self.user)
+
+        task_solve_view = TaskSolve.as_view()
+        response = task_solve_view(request, pk=task_id)
+
+        self.assertEqual(response.status_code, 304)
