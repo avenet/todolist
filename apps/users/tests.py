@@ -76,7 +76,7 @@ class UserGetTokenTestCase(TestCase):
         self.assertEqual(result_json.get('token'), None)
 
 
-class UserCreateSerializerTests(TestCase):
+class UserCreateSerializerTestCase(TestCase):
     """
     UserSerializer class tests
     """
@@ -94,7 +94,7 @@ class UserCreateSerializerTests(TestCase):
         self.assertEqual(set(UserCreateSerializer.Meta.fields), fields)
 
 
-class UserCreateTests(TestCase):
+class UserCreateTestCase(TestCase):
     def setUp(self):
         self.lennon = User.objects.create_user(
             'john',
