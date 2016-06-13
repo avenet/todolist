@@ -409,3 +409,79 @@ class TaskListTestCase(TestCase):
         self.assertIsNotNone(new_task.created)
         self.assertIsNotNone(new_task.updated)
         self.assertEqual(new_task.status, Task.PENDING)
+
+
+class TaskDetailTestCase(TestCase):
+    def setUp(self):
+        self.user = User.objects.create(username="master")
+        self.user_two = User.objects.create(username="puppet")
+
+        self.tasks = [
+            Task.objects.create(name='One', owner=self.user),
+            Task.objects.create(name='Two', owner=self.user),
+            Task.objects.create(name='Three', owner=self.user),
+        ]
+
+    def test_task_detail_queryset(self):
+        """
+        Tests that the queryset attribute on the TaskDetail class
+        is a list containing all of the Task objects.
+        """
+        self.assertListEqual(list(TaskDetail.queryset.all()),
+                             list(Task.objects.all()))
+
+    def test_task_detail_authentication_classes(self):
+        """
+        Tests that the authentication_classes attribute on the TaskDetail class
+        contains the valid class list values.
+        """
+        self.assertEqual(TaskDetail.authentication_classes,
+                         (TokenAuthentication,))
+
+    def test_get_task_list_without_authentication(self):
+        """
+        Tests that when a user is not authenticated he/she is
+        not able to get the task list.
+        """
+        factory = APIRequestFactory()
+        request = factory.get('/api/v1/tasks/1/', format='json')
+        task_detail_view = TaskDetail.as_view()
+        response = task_detail_view(request, pk=1)
+
+        self.assertEqual(response.status_code, 401)
+
+    def test_user_cannot_see_other_tasks_but_hims(self):
+        """
+        Tests that when an authenticated user can only see the detail for its
+        tasks.
+        """
+        factory = APIRequestFactory()
+        task_id = self.tasks[0].pk
+        request = factory.get('/api/v1/tasks/{}/'.format(task_id), format='json')
+        task_detail_view = TaskDetail.as_view()
+        force_authenticate(request, user=self.user_two)
+
+        response = task_detail_view(request, pk=task_id)
+
+        self.assertEqual(response.status_code, 401)
+
+    def test_task_detail_fields(self):
+        """
+        Tests that when an authenticated and tries to get his/her task detail
+        it only gets the correct fields.
+        """
+        factory = APIRequestFactory()
+        task_id = self.tasks[0].pk
+        request = factory.get('/api/v1/tasks/1/'.format(task_id))
+        task_detail_view = TaskDetail.as_view()
+        force_authenticate(request, user=self.user)
+
+        response = task_detail_view(request, pk=task_id)
+
+        self.assertEqual(response.status_code, 200)
+
+        task_fields = ['id', 'name', 'description',
+                       'status', 'created', 'updated']
+
+        for task_field in task_fields:
+            self.assertEqual(task_field in response.data, True)
